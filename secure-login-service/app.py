@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 import os
@@ -32,6 +32,24 @@ with app.app_context():
 @app.route('/')
 def start():
     return("Flask server running")
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
+
+    existing_user = User.query.filter_by(username=username).first()
+    if existing_user:
+        return jsonify({"error": "Username already exists"}), 409
+    else:   
+        user = User(username, password)
+        db.session.add(user)
+        db.session.commit()
+        return jsonify({"success": "User successfully created"}), 201
 
 if __name__ == '__main__':
     app.run(debug=True)
