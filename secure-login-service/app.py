@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-import os
+import os, jwt, datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -50,6 +50,25 @@ def register():
         db.session.add(user)
         db.session.commit()
         return jsonify({"success": "User successfully created"}), 201
+    
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    user = User.query.filter_by(username=username).first()
+
+    if user and user.check_password(password):
+        payload = {
+            'user_id': user.id,
+            'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)
+            }
+        token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
+        return jsonify({"token": token})
+    else:
+        return jsonify({"error": "Invalid username of password"}), 401
+
 
 if __name__ == '__main__':
     app.run(debug=True)
