@@ -69,6 +69,29 @@ def login():
     else:
         return jsonify({"error": "Invalid username of password"}), 401
 
+@app.route('/profile')
+def profile():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Authorization header missing'}), 401
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'error': 'Invalid token format'}), 401
+    token = auth_header.split(" ")[1]
+
+    try:
+        payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+        user_id = payload['user_id']
+        user = User.query.get(user_id)
+
+        if user:
+            return jsonify({'username': user.username, 'id': user.id})
+        else:
+            return jsonify({'error': 'User not found'}), 404
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({"error": "Token expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"error": "Invalid token"}), 401
 
 if __name__ == '__main__':
     app.run(debug=True)
